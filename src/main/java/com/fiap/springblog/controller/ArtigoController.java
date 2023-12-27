@@ -1,9 +1,6 @@
 package com.fiap.springblog.controller;
 
-import com.fiap.springblog.model.Artigo;
-import com.fiap.springblog.model.ArtigoStatusCount;
-import com.fiap.springblog.model.Autor;
-import com.fiap.springblog.model.AutorTotalArtigo;
+import com.fiap.springblog.model.*;
 import com.fiap.springblog.service.ArtigoService;
 import com.fiap.springblog.service.AutorService;
 import com.fiap.springblog.service.impl.ArtigoServiceImpl;
@@ -44,6 +41,11 @@ public class ArtigoController {
     @GetMapping("/{id}")
     public Artigo getById(@PathVariable String id){
         return service.getById(id);
+    }
+
+    @PostMapping("/artigo-autor")
+    public ResponseEntity<?> create(@RequestBody @Valid ArtigoComAutorRequest request){
+        return service.criarArtigoComAutor(request.getArtigo(), request.getAutor());
     }
 
     @PostMapping
@@ -87,6 +89,14 @@ public class ArtigoController {
     public ResponseEntity deleteArtigo(@PathVariable String id){
 
         service.deleteArtigo(id);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/artigo-autor")
+    public ResponseEntity deleteArtigo(@RequestBody Artigo artigo){
+
+        service.deleteArtigoEAutor(artigo);
 
         return ResponseEntity.noContent().build();
     }

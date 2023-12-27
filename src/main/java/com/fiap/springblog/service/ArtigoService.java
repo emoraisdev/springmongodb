@@ -2,6 +2,7 @@ package com.fiap.springblog.service;
 
 import com.fiap.springblog.model.Artigo;
 import com.fiap.springblog.model.ArtigoStatusCount;
+import com.fiap.springblog.model.Autor;
 import com.fiap.springblog.model.AutorTotalArtigo;
 import org.springframework.cglib.core.Local;
 import org.springframework.data.domain.Page;
@@ -22,6 +23,8 @@ public interface ArtigoService {
 
     public ResponseEntity<?> create(Artigo artigo);
 
+    public ResponseEntity<?> criarArtigoComAutor(Artigo artigo, Autor autor);
+
     public List<Artigo> findByDataGreaterThan(LocalDateTime data);
 
     public List<Artigo> findByDataAndStatus(LocalDateTime data, Integer status);
@@ -33,6 +36,8 @@ public interface ArtigoService {
     public void delete(String id);
 
     public void deleteArtigo(String id);
+
+    public void deleteArtigoEAutor(Artigo artigo);
 
     public List<Artigo> findByStatusAndDataGreaterThan(Integer status, LocalDateTime data);
 

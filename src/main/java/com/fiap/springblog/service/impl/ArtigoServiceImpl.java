@@ -5,16 +5,19 @@ import com.fiap.springblog.model.ArtigoStatusCount;
 import com.fiap.springblog.model.Autor;
 import com.fiap.springblog.model.AutorTotalArtigo;
 import com.fiap.springblog.repository.ArtigoRepository;
+import com.fiap.springblog.repository.AutorRepository;
 import com.fiap.springblog.service.ArtigoService;
 import com.fiap.springblog.service.AutorService;
 import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cglib.core.Local;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.MongoTransactionManager;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
@@ -24,6 +27,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -36,7 +40,13 @@ public class ArtigoServiceImpl implements ArtigoService {
     private ArtigoRepository repo;
 
     @Autowired
+    private AutorRepository autorRepo;
+
+    @Autowired
     private AutorService autorService;
+
+    @Autowired
+    private MongoTransactionManager transactionManager;
 
     private final MongoTemplate mongoTemplate;
 
@@ -54,6 +64,31 @@ public class ArtigoServiceImpl implements ArtigoService {
     public Artigo getById(String id) {
         return repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Artigo não encontrado!"));
+    }
+
+    @Override
+    public ResponseEntity<?> criarArtigoComAutor(Artigo artigo, Autor autor) {
+
+        var transactionTemplate = new TransactionTemplate(transactionManager);
+
+        transactionTemplate.execute(status -> {
+
+            try {
+
+                autorService.create(autor);
+
+                artigo.setData(LocalDateTime.now());
+                artigo.setAutor(autor);
+                repo.save(artigo);
+            } catch (Exception e) {
+                status.setRollbackOnly();
+                throw new RuntimeException("Ocorreu um erro desconhecido!\n Erro:" + e.getMessage());
+            }
+
+            return null;
+        });
+
+        return null;
     }
 
     @Override
@@ -184,6 +219,25 @@ public class ArtigoServiceImpl implements ArtigoService {
 
         //Efetivando a atualização.
         mongoTemplate.remove(query, Artigo.class);
+    }
+
+    @Override
+    public void deleteArtigoEAutor(Artigo artigo) {
+
+        new TransactionTemplate(transactionManager).execute(
+                status -> {
+
+                    try {
+                        repo.delete(artigo);
+
+                        autorRepo.delete(artigo.getAutor());
+                        return null;
+                    } catch (Exception e) {
+                        status.setRollbackOnly();
+                        throw new RuntimeException("Erro ao excluir artigo e autor: " + e.getMessage());
+                    }
+                }
+        );
     }
 
     @Override
