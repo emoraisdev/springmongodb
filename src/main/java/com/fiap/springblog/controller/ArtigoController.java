@@ -7,6 +7,7 @@ import com.fiap.springblog.model.AutorTotalArtigo;
 import com.fiap.springblog.service.ArtigoService;
 import com.fiap.springblog.service.AutorService;
 import com.fiap.springblog.service.impl.ArtigoServiceImpl;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
@@ -26,6 +27,7 @@ public class ArtigoController {
     @Autowired
     private ArtigoService service;
 
+    @ExceptionHandler(OptimisticLockingFailureException.class)
     public ResponseEntity<String> handleOptimisticLockingFailureException(
             OptimisticLockingFailureException exception){
 
@@ -45,7 +47,7 @@ public class ArtigoController {
     }
 
     @PostMapping
-    public Artigo create(@RequestBody Artigo artigo){
+    public ResponseEntity<?> create(@RequestBody @Valid Artigo artigo){
         return service.create(artigo);
     }
 
@@ -61,10 +63,8 @@ public class ArtigoController {
     }
 
     @PutMapping
-    public ResponseEntity update(@RequestBody Artigo artigo){
-        service.update(artigo);
-
-        return ResponseEntity.ok().build();
+    public ResponseEntity update(@RequestBody @Valid Artigo artigo){
+        return service.update(artigo);
     }
 
     @PutMapping("/{id}")

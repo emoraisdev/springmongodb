@@ -6,6 +6,7 @@ import com.fiap.springblog.model.AutorTotalArtigo;
 import org.springframework.cglib.core.Local;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -17,13 +18,15 @@ public interface ArtigoService {
 
     public Artigo getById(String id);
 
-    public Artigo create(Artigo artigo);
+//    public Artigo create(Artigo artigo);
+
+    public ResponseEntity<?> create(Artigo artigo);
 
     public List<Artigo> findByDataGreaterThan(LocalDateTime data);
 
     public List<Artigo> findByDataAndStatus(LocalDateTime data, Integer status);
 
-    public void update(Artigo artigo);
+    public ResponseEntity<?> update(Artigo artigo);
 
     public void updateArtigo(String id, String novaUrl);
 

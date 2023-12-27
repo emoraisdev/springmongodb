@@ -7,7 +7,10 @@ import com.fiap.springblog.model.AutorTotalArtigo;
 import com.fiap.springblog.repository.ArtigoRepository;
 import com.fiap.springblog.service.ArtigoService;
 import com.fiap.springblog.service.AutorService;
+import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +20,8 @@ import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.aggregation.TypedAggregation;
 import org.springframework.data.mongodb.core.query.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,6 +57,33 @@ public class ArtigoServiceImpl implements ArtigoService {
     }
 
     @Override
+    public ResponseEntity<?> create(Artigo artigo) {
+
+        if (artigo.getAutor()!= null && artigo.getAutor().getId() != null) {
+            Autor autor = autorService.getById(artigo.getAutor().getId());
+
+            artigo.setAutor(autor);
+        } else {
+            artigo.setAutor(null);
+        }
+
+        try {
+            repo.save(artigo);
+
+            return ResponseEntity.status(HttpStatus.CREATED).build();
+
+        } catch (DuplicateKeyException e) {
+
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Artigo já existe na coleção");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Ocorreu um erro desconhecido: "+ e.getMessage());
+        }
+
+    }
+
+/*    @Override
     @Transactional
     public Artigo create(Artigo artigo) {
 
@@ -65,7 +97,7 @@ public class ArtigoServiceImpl implements ArtigoService {
         }
 
         return repo.save(artigo);
-    }
+    }*/
 
     @Override
     public List<Artigo> findByDataGreaterThan(LocalDateTime data) {
@@ -85,8 +117,40 @@ public class ArtigoServiceImpl implements ArtigoService {
 
     @Override
     @Transactional
-    public void update(Artigo artigo) {
-        repo.save(artigo);
+    public ResponseEntity<?> update(Artigo artigo) {
+
+        try {
+            this.getById(artigo.getId());
+            repo.save(artigo);
+
+            return ResponseEntity.status(HttpStatus.OK).build();
+
+        } catch (OptimisticLockingFailureException ex) {
+
+            try {
+                var artigoAtualizado = this.getById(artigo.getId());
+
+                artigoAtualizado.setTitulo(artigo.getTitulo());
+                artigoAtualizado.setData(artigo.getData());
+                artigoAtualizado.setTexto(artigo.getTexto());
+                artigoAtualizado.setStatus(artigo.getStatus());
+                artigoAtualizado.setUrl(artigo.getUrl());
+
+                if (artigo.getAutor() != null) {
+                    artigoAtualizado.setAutor(artigo.getAutor());
+                }
+
+                artigoAtualizado.setVersion(artigoAtualizado.getVersion());
+
+                repo.save(artigoAtualizado);
+
+                return ResponseEntity.status(HttpStatus.OK).build();
+            } catch (RuntimeException e) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            }
+        } catch (RuntimeException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+        }
     }
 
     @Override
